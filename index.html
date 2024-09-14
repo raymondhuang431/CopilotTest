@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>易經卜卦</title>
+    <style>
+        
+    body { font-family: "Microsoft JhengHei", Arial, sans-serif; text-align: center; background-color: #f0e6d2; color: #333; }
+    h1 { color: #8b4513; text-shadow: 1px 1px 2px #d2b48c; }
+    button { 
+        font-size: 18px; 
+        padding: 10px 20px; 
+        margin: 20px; 
+        background-color: #8b4513; 
+        color: white; 
+        border: none; 
+        border-radius: 5px; 
+        cursor: pointer; 
+        transition: background-color 0.3s;
+    }
+    button:hover { background-color: #a0522d; }
+    button:disabled { background-color: #d2b48c; cursor: not-allowed; }
+    #result { 
+        font-size: 18px; 
+        margin-top: 20px; 
+        background-color: #fff8dc; 
+        padding: 20px; 
+        border-radius: 10px; 
+        box-shadow: 0 0 10px rgba(139,69,19,0.1); 
+        max-width: 600px; 
+        margin-left: auto; 
+        margin-right: auto;
+        border: 2px solid #d2b48c;
+    }
+    #instructions {
+        max-width: 600px;
+        margin: 0 auto 20px;
+        text-align: left;
+        background-color: #fff8dc;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(139,69,19,0.1);
+        border: 2px solid #d2b48c;
+    }
+    #instructions h3 {
+        margin-top: 0;
+        color: #8b4513;
+    }
+    #instructions ol {
+        padding-left: 20px;
+    }
+    #instructions li {
+        margin-bottom: 10px;
+        color: #666;
+    }
+    .hexagram-result {
+        font-size: 24px;
+        margin-top: 10px;
+        color: #8b4513;
+    }
+    .hexagram-result a {
+        color: #8b4513;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+    .hexagram-result a:hover {
+        color: #a0522d;
+        text-decoration: underline;
+    }
+    .yao-result {
+        text-align: left;
+        margin-bottom: 10px;
+    }
+    .yao-result span {
+        display: inline-block;
+        width: 50px;
+        height: 10px;
+        margin-right: 10px;
+        background-color: #8b4513;
+    }
+    .yao-result .yin {
+        background-color: #d2b48c;
+    }
+
+        body { font-family: Arial, sans-serif; text-align: center; }
+        button { font-size: 18px; padding: 10px 20px; margin: 20px; }
+        #result { font-size: 24px; margin-top: 20px; }
+        #instructions {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: left;
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        #instructions h3 {
+            margin-top: 0;
+        }
+        #instructions ol {
+            padding-left: 20px;
+        }
+        #instructions li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>易經卜卦</h1>
+
+    <div id="instructions">
+        <h3>卜卦說明：</h3>
+        <ol>
+            <li>在心中默想問題，將三枚硬幣同時擲出，此動作需重複六次，第一次的結果為初爻，第二次的結果為二爻，以此類推。</li>
+            <li>要注意卜卦的問法必須是是非題或問答題，如果問選擇題他是不會回答你的。(例如晚餐要吃火鍋還是義大利麵。)</li>
+            <li>保持桌面潔淨，心無雜念。</li>
+        </ol>               
+    </div>
+
+    <button onclick="castHexagram()">卜卦</button>
+    <div id="result"></div>
+
+    <script>
+        let clickCount = 0;
+        let lines = [];
+        let hexagramResult = "";
+        const yaoNames = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"];
+
+        const hexagramNames = {
+            "乾": { number: 1, symbol: "䷀", name: "乾", nature: "天天", spell: "qian" },
+            "坤": { number: 2, symbol: "䷁", name: "坤", nature: "地地", spell: "kun" },
+            "屯": { number: 3, symbol: "䷂", name: "屯", nature: "水雷", spell: "zhun" },
+            "蒙": { number: 4, symbol: "䷃", name: "蒙", nature: "山水", spell: "meng" },
+            "需": { number: 5, symbol: "䷄", name: "需", nature: "水天", spell: "xu" },
+            "訟": { number: 6, symbol: "䷅", name: "訟", nature: "天水", spell: "song" },
+            "師": { number: 7, symbol: "䷆", name: "師", nature: "地水", spell: "shi" },
+            "比": { number: 8, symbol: "䷇", name: "比", nature: "水地", spell: "bi" },
+            "小畜": { number: 9, symbol: "䷈", name: "小畜", nature: "風天", spell: "xiao chu" },
+            "履": { number: 10, symbol: "䷉", name: "履", nature: "天澤", spell: "lü" },
+            "泰": { number: 11, symbol: "䷊", name: "泰", nature: "地天", spell: "tai" },
+            "否": { number: 12, symbol: "䷋", name: "否", nature: "天地", spell: "pi" },
+            "同人": { number: 13, symbol: "䷌", name: "同人", nature: "天火", spell: "tong ren" },
+            "大有": { number: 14, symbol: "䷍", name: "大有", nature: "火天", spell: "dayou" },
+            "謙": { number: 15, symbol: "䷎", name: "謙", nature: "地山", spell: "qian" },
+            "豫": { number: 16, symbol: "䷏", name: "豫", nature: "雷地", spell: "yu" },
+            "隨": { number: 17, symbol: "䷐", name: "隨", nature: "澤雷", spell: "sui" },
+            "蠱": { number: 18, symbol: "䷑", name: "蠱", nature: "山風", spell: "gu" },
+            "臨": { number: 19, symbol: "䷒", name: "臨", nature: "地澤", spell: "lin" },
+            "觀": { number: 20, symbol: "䷓", name: "觀", nature: "風地", spell: "guan" },
+            "噬嗑": { number: 21, symbol: "䷔", name: "噬嗑", nature: "火雷", spell: "shihe" },
+            "賁": { number: 22, symbol: "䷕", name: "賁", nature: "山火", spell: "bi" },
+            "剝": { number: 23, symbol: "䷖", name: "剝", nature: "山地", spell: "bo" },
+            "復": { number: 24, symbol: "䷗", name: "復", nature: "地雷", spell: "fu" },
+            "无妄": { number: 25, symbol: "䷘", name: "无妄", nature: "天雷", spell: "wuwang" },
+            "大畜": { number: 26, symbol: "䷙", name: "大畜", nature: "山天", spell: "dachu" },
+            "頤": { number: 27, symbol: "䷚", name: "頤", nature: "山雷", spell: "yi" },
+            "大過": { number: 28, symbol: "䷛", name: "大過", nature: "澤風", spell: "daguo" },
+            "坎": { number: 29, symbol: "䷜", name: "坎", nature: "水水", spell: "kan" },
+            "離": { number: 30, symbol: "䷝", name: "離", nature: "火火", spell: "li" },
+            "咸": { number: 31, symbol: "䷞", name: "咸", nature: "澤山", spell: "xian" },
+            "恒": { number: 32, symbol: "䷟", name: "恒", nature: "雷風", spell: "heng" },
+            "遯": { number: 33, symbol: "䷠", name: "遯", nature: "天山", spell: "dun" },
+            "大壯": { number: 34, symbol: "䷡", name: "大壯", nature: "雷天", spell: "dazhuang" },
+            "晉": { number: 35, symbol: "䷢", name: "晉", nature: "火地", spell: "jin" },
+            "明夷": { number: 36, symbol: "䷣", name: "明夷", nature: "地火", spell: "mingyi" },
+            "家人": { number: 37, symbol: "䷤", name: "家人", nature: "風火", spell: "jiaren" },
+            "睽": { number: 38, symbol: "䷥", name: "睽", nature: "火澤", spell: "kui" },
+            "蹇": { number: 39, symbol: "䷦", name: "蹇", nature: "水山", spell: "jian" },
+            "解": { number: 40, symbol: "䷧", name: "解", nature: "雷水", spell: "xie" },
+            "損": { number: 41, symbol: "䷨", name: "損", nature: "山澤", spell: "sun" },
+            "益": { number: 42, symbol: "䷩", name: "益", nature: "風雷", spell: "yi" },
+            "夬": { number: 43, symbol: "䷪", name: "夬", nature: "澤天", spell: "guai" },
+            "姤": { number: 44, symbol: "䷫", name: "姤", nature: "天風", spell: "gou" },
+            "萃": { number: 45, symbol: "䷬", name: "萃", nature: "澤地", spell: "cui" },
+            "升": { number: 46, symbol: "䷭", name: "升", nature: "地風", spell: "sheng" },
+            "困": { number: 47, symbol: "䷮", name: "困", nature: "澤水", spell: "kun" },
+            "井": { number: 48, symbol: "䷯", name: "井", nature: "水風", spell: "jing" },
+            "革": { number: 49, symbol: "䷰", name: "革", nature: "澤火", spell: "ge" },
+            "鼎": { number: 50, symbol: "䷱", name: "鼎", nature: "火風", spell: "ding" },
+            "震": { number: 51, symbol: "䷲", name: "震", nature: "雷雷", spell: "zhen" },
+            "艮": { number: 52, symbol: "䷳", name: "艮", nature: "山山", spell: "gen" },
+            "漸": { number: 53, symbol: "䷴", name: "漸", nature: "風山", spell: "jian" },
+            "歸妹": { number: 54, symbol: "䷵", name: "歸妹", nature: "雷澤", spell: "guimei" },
+            "豐": { number: 55, symbol: "䷶", name: "豐", nature: "雷火", spell: "feng" },
+            "旅": { number: 56, symbol: "䷷", name: "旅", nature: "火山", spell: "lü" },
+            "巽": { number: 57, symbol: "䷸", name: "巽", nature: "風風", spell: "xun" },
+            "兌": { number: 58, symbol: "䷹", name: "兌", nature: "澤澤", spell: "dui" },
+            "渙": { number: 59, symbol: "䷺", name: "渙", nature: "風水", spell: "huan" },
+            "節": { number: 60, symbol: "䷻", name: "節", nature: "水澤", spell: "jie" },
+            "中孚": { number: 61, symbol: "䷼", name: "中孚", nature: "風澤", spell: "zhongfu" },
+            "小過": { number: 62, symbol: "䷽", name: "小過", nature: "雷山", spell: "xiaoguo" },
+            "既濟": { number: 63, symbol: "䷾", name: "既濟", nature: "水火", spell: "jiji" },
+            "未濟": { number: 64, symbol: "䷿", name: "未濟", nature: "火水", spell: "weiji" }
+        };
+
+        function castHexagram() {
+            if (clickCount < 6) {
+                const line = Math.random() < 0.5 ? "陰" : "陽";
+                lines.push(line);
+                hexagramResult += `${yaoNames[clickCount]}: ${line}<br>`;
+                clickCount++;
+
+                if (clickCount < 6) {
+                    document.getElementById('result').innerHTML = `
+                        卜卦進度：${clickCount}/6<br>
+                        ${hexagramResult}<br>
+                        請繼續點擊卜卦按鈕
+                    `;
+                } else {
+                    const hexagramInfo = determineHexagram(lines);
+                    document.getElementById('result').innerHTML = `
+                        卜卦結果：<br>
+                        ${hexagramResult}<br>
+                        您的卦象是：<br>
+                        ${hexagramInfo}<br>
+                        <button onclick="resetHexagram()">重新卜卦</button>
+                    `;
+                    document.querySelector('button').disabled = true;
+                }
+            }
+        }
+
+        function determineHexagram(lines) {
+            const trigrams = {
+                "陽陽陽": "天", "陰陽陽": "澤", "陽陰陽": "火", "陰陰陽": "雷",
+                "陽陽陰": "風", "陰陽陰": "水", "陽陰陰": "山", "陰陰陰": "地"
+            };
+
+            const upperTrigram = trigrams[lines.slice(3).join('')];
+            const lowerTrigram = trigrams[lines.slice(0, 3).join('')];
+
+            const hexagramNature = `${upperTrigram}${lowerTrigram}`;
+            
+            for (let key in hexagramNames) {
+                if (hexagramNames[key].nature === hexagramNature) {
+                    const hexagramInfo = hexagramNames[key];
+                    const link = `https://1percent-better.com/tw/oriental_wisdom/iching/hexagram/${hexagramInfo.number}_${encodeURIComponent(hexagramInfo.spell)}/`;
+                    return `請點擊：<a href="${link}" target="_blank">${hexagramInfo.number}. ${hexagramInfo.symbol} ${hexagramInfo.name} (${hexagramInfo.nature})</a>`;
+                }
+            }
+
+            return "未知卦象";
+        }
+
+        function resetHexagram() {
+            clickCount = 0;
+            lines = [];
+            hexagramResult = "";
+            document.getElementById('result').innerHTML = "";
+            document.querySelector('button').disabled = false;
+        }
+    </script>
+</body>
+</html>
+
