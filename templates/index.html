@@ -5,104 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>易經卜卦</title>
     <style>
-        
-    body { font-family: "Microsoft JhengHei", Arial, sans-serif; text-align: center; background-color: #f0e6d2; color: #333; }
-    h1 { color: #8b4513; text-shadow: 1px 1px 2px #d2b48c; }
-    button { 
-        font-size: 18px; 
-        padding: 10px 20px; 
-        margin: 20px; 
-        background-color: #8b4513; 
-        color: white; 
-        border: none; 
-        border-radius: 5px; 
-        cursor: pointer; 
-        transition: background-color 0.3s;
-    }
-    button:hover { background-color: #a0522d; }
-    button:disabled { background-color: #d2b48c; cursor: not-allowed; }
-    #result { 
-        font-size: 18px; 
-        margin-top: 20px; 
-        background-color: #fff8dc; 
-        padding: 20px; 
-        border-radius: 10px; 
-        box-shadow: 0 0 10px rgba(139,69,19,0.1); 
-        max-width: 600px; 
-        margin-left: auto; 
-        margin-right: auto;
-        border: 2px solid #d2b48c;
-    }
-    #instructions {
-        max-width: 600px;
-        margin: 0 auto 20px;
-        text-align: left;
-        background-color: #fff8dc;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(139,69,19,0.1);
-        border: 2px solid #d2b48c;
-    }
-    #instructions h3 {
-        margin-top: 0;
-        color: #8b4513;
-    }
-    #instructions ol {
-        padding-left: 20px;
-    }
-    #instructions li {
-        margin-bottom: 10px;
-        color: #666;
-    }
-    .hexagram-result {
-        font-size: 24px;
-        margin-top: 10px;
-        color: #8b4513;
-    }
-    .hexagram-result a {
-        color: #8b4513;
-        text-decoration: none;
-        transition: color 0.3s;
-    }
-    .hexagram-result a:hover {
-        color: #a0522d;
-        text-decoration: underline;
-    }
-    .yao-result {
-        text-align: left;
-        margin-bottom: 10px;
-    }
-    .yao-result span {
-        display: inline-block;
-        width: 50px;
-        height: 10px;
-        margin-right: 10px;
-        background-color: #8b4513;
-    }
-    .yao-result .yin {
-        background-color: #d2b48c;
-    }
-
-        body { font-family: Arial, sans-serif; text-align: center; }
-        button { font-size: 18px; padding: 10px 20px; margin: 20px; }
-        #result { font-size: 24px; margin-top: 20px; }
+        body { font-family: "Microsoft JhengHei", Arial, sans-serif; text-align: center; background-color: #f0e6d2; color: #333; }
+        h1 { color: #8b4513; text-shadow: 1px 1px 2px #d2b48c; }
+        button { 
+            font-size: 18px; 
+            padding: 10px 20px; 
+            margin: 20px; 
+            background-color: #8b4513; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #a0522d; }
+        button:disabled { background-color: #d2b48c; cursor: not-allowed; }
+        #result { 
+            font-size: 18px; 
+            margin-top: 20px; 
+            background-color: #fff8dc; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 0 10px rgba(139,69,19,0.1); 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto;
+            border: 2px solid #d2b48c;
+        }
         #instructions {
             max-width: 600px;
-            margin: 0 auto;
+            margin: 0 auto 20px;
             text-align: left;
-            background-color: #f0f0f0;
+            background-color: #fff8dc;
             padding: 20px;
             border-radius: 10px;
-            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(139,69,19,0.1);
+            border: 2px solid #d2b48c;
         }
         #instructions h3 {
             margin-top: 0;
+            color: #8b4513;
         }
         #instructions ol {
             padding-left: 20px;
         }
         #instructions li {
             margin-bottom: 10px;
+            color: #666;
+        }
+        .hexagram-result {
+            font-size: 24px;
+            margin-top: 10px;
+            color: #8b4513;
+        }
+        .yao-result {
+            text-align: left;
+            margin-bottom: 10px;
+        }
+        .yao-result span {
+            display: inline-block;
+            width: 50px;
+            height: 10px;
+            margin-right: 10px;
+            background-color: #8b4513;
+        }
+        .yao-result .yin {
+            background-color: #d2b48c;
         }
     </style>
 </head>
@@ -208,14 +176,7 @@
                     `;
                 } else {
                     const hexagramInfo = determineHexagram(lines);
-                    document.getElementById('result').innerHTML = `
-                        卜卦結果：<br>
-                        ${hexagramResult}<br>
-                        您的卦象是：<br>
-                        ${hexagramInfo}<br>
-                        <button onclick="resetHexagram()">重新卜卦</button>
-                    `;
-                    document.querySelector('button').disabled = true;
+                    fetchHexagramInfo(hexagramInfo.number);
                 }
             }
         }
@@ -233,13 +194,31 @@
             
             for (let key in hexagramNames) {
                 if (hexagramNames[key].nature === hexagramNature) {
-                    const hexagramInfo = hexagramNames[key];
-                    const link = `https://1percent-better.com/tw/oriental_wisdom/iching/hexagram/${hexagramInfo.number}_${encodeURIComponent(hexagramInfo.spell)}/`;
-                    return `請點擊：<a href="${link}" target="_blank">${hexagramInfo.number}. ${hexagramInfo.symbol} ${hexagramInfo.name} (${hexagramInfo.nature})</a>`;
+                    return hexagramNames[key];
                 }
             }
 
-            return "未知卦象";
+            return null;
+        }
+
+        function fetchHexagramInfo(hexagramNumber) {
+            fetch(`/get_hexagram/${hexagramNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('result').innerHTML = `
+                        卜卦結果：<br>
+                        ${hexagramResult}<br>
+                        您的卦象是：<br>
+                        ${data.卦號}. ${data.卦名}<br>
+                        卦辭：${data.卦辭}<br>
+                        <button onclick="resetHexagram()">重新卜卦</button>
+                    `;
+                    document.querySelector('button').disabled = true;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = "獲取卦象信息時出錯，請稍後再試。";
+                });
         }
 
         function resetHexagram() {
@@ -252,4 +231,3 @@
     </script>
 </body>
 </html>
-

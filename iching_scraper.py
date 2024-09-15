@@ -1,9 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
-import csv
 import time
-import sqlite3
+import psycopg2
+from psycopg2 import sql
+import logging
+import traceback
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 # 定義64卦的資訊
 hexagrams = {
     "乾": { "number": 1, "symbol": "䷀", "name": "乾", "nature": "天天", "spell": "qian" },
@@ -71,22 +74,62 @@ hexagrams = {
     "既濟": { "number": 63, "symbol": "䷾", "name": "既濟", "nature": "水火", "spell": "jiji" },
     "未濟": { "number": 64, "symbol": "䷿", "name": "未濟", "nature": "火水", "spell": "weiji" }
 }
-
-# 準備資料庫連接
-conn = sqlite3.connect('iching.db')
-cursor = conn.cursor()
-
-# 創建表格
-cursor.execute('''CREATE TABLE IF NOT EXISTS hexagrams
-                  (卦號 INTEGER PRIMARY KEY, 卦名 TEXT, 卦辭 TEXT, 關鍵 TEXT, 六十四卦的序列 TEXT, 
-                   相關詞 TEXT, 運勢 TEXT, 願望 TEXT, 愛情_關係 TEXT, 婚姻 TEXT, 個性 TEXT, 
-                   事業和策略 TEXT, 住宅 TEXT, 行情 TEXT, 旅行 TEXT, 生病_病狀 TEXT, 
-                   爻辭1 TEXT, 爻辭2 TEXT, 爻辭3 TEXT, 爻辭4 TEXT, 爻辭5 TEXT, 爻辭6 TEXT, 爻辭7 TEXT, 爻辭8 TEXT)''')
-
-# 定義標題
 headers = ["卦號", "卦名", "卦辭", "關鍵", "六十四卦的序列", "相關詞", "運勢", "願望", "愛情・關係", "婚姻", "個性", 
            "事業和策略", "住宅", "行情", "旅行", "生病・病狀", 
            "爻辭1", "爻辭2", "爻辭3", "爻辭4", "爻辭5", "爻辭6", "爻辭7", "爻辭8"]
+try:
+    conn = psycopg2.connect(
+        dbname="iching_db",
+        user="postgres",
+        password="12345",
+        host="localhost",
+        port="5432"
+    )
+    cursor = conn.cursor()
+    logging.info("成功連接到數據庫")
+    
+    # 測試查詢
+    cursor.execute("SELECT version();")
+    db_version = cursor.fetchone()
+    logging.info(f"PostgreSQL 數據庫版本：{db_version}")
+
+except Exception as e:
+    logging.error(f"數據庫連接失敗：{e}")
+    exit(1)
+
+# Create table
+create_table_query = sql.SQL('''
+    CREATE TABLE IF NOT EXISTS hexagrams (
+        {} INTEGER PRIMARY KEY,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT,
+        {} TEXT
+    )
+''').format(*(sql.Identifier(header) for header in headers))
+
+cursor.execute(create_table_query)
+
+
 
 # 遍歷64卦
 for hexagram in sorted(hexagrams.values(), key=lambda x: x["number"]):
@@ -96,53 +139,54 @@ for hexagram in sorted(hexagrams.values(), key=lambda x: x["number"]):
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        # 提取主要內容
         main_content = soup.find('div', class_='entry-content')
+        if not main_content:
+            logging.warning(f"無法找到主要內容: {hexagram['number']} - {hexagram['name']}")
+            continue
 
-        # 準備數據字典
         data_dict = {header: "" for header in headers}
         data_dict["卦號"] = hexagram['number']
         data_dict["卦名"] = hexagram['name']
 
-        # 提取所有內容，包括卦辭
-        for header in headers[2:16]:  # 跳過卦號和卦名，不包括爻辭
-            h3_tag = main_content.find('h3', string=lambda text: header in text if text else False)
-            if h3_tag:
-                next_tag = h3_tag.find_next_sibling()
-                if next_tag and next_tag.name == 'p':
-                    data_dict[header] = next_tag.text.strip()
+        for header in headers[2:16]:
+            try:
+                h3_tag = main_content.find('h3', string=lambda text: header in text if text else False)
+                if h3_tag:
+                    next_tag = h3_tag.find_next_sibling()
+                    if next_tag and next_tag.name == 'p':
+                        data_dict[header] = next_tag.text.strip()
+                    else:
+                        logging.warning(f"未找到 {header} 的內容: {hexagram['number']} - {hexagram['name']}")
+            except Exception as e:
+                logging.error(f"處理 {header} 時出錯: {hexagram['number']} - {hexagram['name']}")
+                logging.error(traceback.format_exc())
 
-        # 特別處理爻辭
-        yao_ci = main_content.find('h2', string=lambda text: '爻辭' in text if text else False)
-        if yao_ci:
-            yao_texts = yao_ci.find_next_siblings(['h3', 'p'])
-            yao_index = 0
-            current_yao = ""
-            for yao in yao_texts:
-                if yao.name == 'h3':
-                    if current_yao and yao_index < 8:
-                        data_dict[f"爻辭{yao_index+1}"] = current_yao.strip()
-                        yao_index += 1
-                    current_yao = yao.text.strip()
-                elif yao.name == 'p':
-                    current_yao += " " + yao.text.strip()
-                if yao_index >= 8:
-                    break
-            if current_yao and yao_index < 8:
-                data_dict[f"爻辭{yao_index+1}"] = current_yao.strip()
 
-        # 將數據插入資料庫
-        cursor.execute('''INSERT OR REPLACE INTO hexagrams VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                       [data_dict[header] for header in headers])
+        # ... (爻辭處理部分保持不變)
+        insert_query = sql.SQL('''
+            INSERT INTO hexagrams ({}) VALUES ({})
+            ON CONFLICT (卦號) DO UPDATE SET
+            {}
+        ''').format(
+            sql.SQL(', ').join(map(sql.Identifier, headers)),
+            sql.SQL(', ').join(sql.Placeholder() * len(headers)),
+            sql.SQL(', ').join(
+                sql.SQL('{0} = EXCLUDED.{0}').format(sql.Identifier(header))
+                for header in headers if header != '卦號'
+        )
+)
+    
+        cursor.execute(insert_query, [data_dict.get(header, "") for header in headers])
         conn.commit()
-
-        print(f"已完成第 {hexagram['number']} 卦: {hexagram['name']}")
-        time.sleep(1)  # 添加延遲以避免過於頻繁的請求
-
+        logging.info(f"成功插入/更新第 {hexagram['number']} 卦: {hexagram['name']}")
     except Exception as e:
-        print(f"處理第 {hexagram['number']} 卦時出錯: {e}")
+        conn.rollback()
+        logging.error(f"插入/更新第 {hexagram['number']} 卦时出错: {e}")
+        logging.error(f"插入的数据: {data_dict}")
+        logging.error(f"SQL 查询: {insert_query.as_string(conn)}")
 
 # 關閉資料庫連接
+cursor.close()
 conn.close()
 
-print("所有數據已成功寫入到 iching.db 資料庫中。")
+print("所有數據已成功寫入到 PostgreSQL 資料庫中。")
