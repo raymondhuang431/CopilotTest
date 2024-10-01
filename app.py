@@ -1,25 +1,42 @@
 import os
+import logging
 from flask import Flask, render_template, jsonify
 import psycopg2
 from psycopg2 import sql
 
+# 設置日誌配置
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 
 def get_db_connection():
-      DATABASE_URL = os.environ['DATABASE_URL']
-      conn = psycopg2.connect(DATABASE_URL)
-      return conn
+    DATABASE_URL = os.environ.get('DATABASE_URL')  # 確保這個環境變量正確設置
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        logger.info("成功連接到數據庫")
+        return conn
+    except Exception as e:
+        logger.error("無法連接到數據庫: %s", e)
+        return None
 
 def get_hexagram_info(hexagram_number):
     conn = get_db_connection()
+    if conn is None:
+        return None  # 如果連接失敗，返回 None
+
     cur = conn.cursor()
     query = sql.SQL("SELECT * FROM hexagrams WHERE {} = %s").format(sql.Identifier('卦號'))
     cur.execute(query, (hexagram_number,))
     result = cur.fetchone()
+    
+    # 確保在這裡獲取列名
+    columns = [desc[0] for desc in cur.description] if cur.description else []
+    
     cur.close()
     conn.close()
+    
     if result:
-        columns = [desc[0] for desc in cur.description]
         return dict(zip(columns, result))
     return None
 
