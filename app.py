@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 def get_db_connection():
       DATABASE_URL = os.environ['DATABASE_URL']
-      conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+      conn = psycopg2.connect(DATABASE_URL)
       return conn
 
 def get_hexagram_info(hexagram_number):
