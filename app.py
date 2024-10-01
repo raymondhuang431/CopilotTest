@@ -23,22 +23,25 @@ def get_db_connection():
 def get_hexagram_info(hexagram_number):
     conn = get_db_connection()
     if conn is None:
+        logger.error("無法獲取數據庫連接")
         return None  # 如果連接失敗，返回 None
 
-    cur = conn.cursor()
-    query = sql.SQL("SELECT * FROM hexagrams WHERE {} = %s").format(sql.Identifier('卦號'))
-    cur.execute(query, (hexagram_number,))
-    result = cur.fetchone()
-    
-    # 確保在這裡獲取列名
-    columns = [desc[0] for desc in cur.description] if cur.description else []
-    
-    cur.close()
-    conn.close()
-    
-    if result:
-        return dict(zip(columns, result))
-    return None
+    try:
+        cur = conn.cursor()
+        query = sql.SQL("SELECT * FROM hexagrams WHERE {} = %s").format(sql.Identifier('卦號'))
+        cur.execute(query, (hexagram_number,))
+        result = cur.fetchone()
+        
+        # 確保在這裡獲取列名
+        columns = [desc[0] for desc in cur.description] if cur.description else []
+        
+        cur.close()
+        return dict(zip(columns, result)) if result else None
+    except Exception as e:
+        logger.error("查詢數據時出錯: %s", e)
+        return None
+    finally:
+        conn.close()
 
 @app.route('/')
 def index():
