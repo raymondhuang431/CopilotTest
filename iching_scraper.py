@@ -183,7 +183,7 @@ for hexagram in sorted(hexagrams.values(), key=lambda x: x["number"]):
         conn.rollback()
         logging.error(f"插入/更新第 {hexagram['number']} 卦时出错: {e}")
         logging.error(f"插入的数据: {data_dict}")
-        logging.error(f"SQL 查询: {insert_query.as_string(conn)}")
+
 
 # 關閉資料庫連接
 cursor.close()
